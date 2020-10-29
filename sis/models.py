@@ -2,6 +2,8 @@ from django.db import models
 
 # Create your models here.
 
+# When altering models in this file make sure to reflect it on crawler on sis/crawler
+
 FACULTY_CHOICES_TURKISH = [("IN", "İnşaat Fakültesi"),
                            ("MM", "Mimarlık Fakültesi"),
                            ("MK", "Makina Fakültesi"),
@@ -40,22 +42,24 @@ FACULTY_CHOICES = [("IN", "Faculty of Civil Engineering"),
 
 
 class Faculty(models.Model):
-    name = models.CharField(primary_key=True, max_length=2,
+    code = models.CharField(primary_key=True, max_length=2,
                             choices=FACULTY_CHOICES)
+    fullName = models.CharField(max_length=255, default="")
 
     def __str__(self):
-        return ' - '.join((self.name, self.get_name_display()))
+        return ' - '.join((self.code, self.fullName))
 
 
 class Program(models.Model):
-    name = models.CharField(max_length=4, primary_key=True)
+    code = models.CharField(max_length=4, primary_key=True)
+    fullName = models.CharField(max_length=200, default="")
     faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE)
 
     def __str__(self):
-        return self.faculty.name + " faculty's " + self.name + ' program.'
+        return self.faculty.code + " faculty's " + self.code + ' program.'
 
     def __repr__(self):
-        return self.name + ' Program'
+        return self.code + ' Program'
 
 
 class Curriculum(models.Model):
