@@ -10,5 +10,4 @@ class Command(BaseCommand):
         scraper.scrape_faculty()
         scraper.scrape_program()
         scraper.scrape_curriculum()
-        scraper.scrape_course()
-        scraper.scrape_semester()
+        scraper.scrape_semester_and_courses()

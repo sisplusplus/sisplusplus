@@ -6,7 +6,7 @@ from django.db import models
 
 class Faculty(models.Model):
     code = models.CharField(primary_key=True, max_length=2)
-    full_name = models.CharField(max_length=255, default="")
+    full_name = models.CharField(max_length=255)
 
     def __str__(self):
         return ' - '.join((self.code, self.full_name))
@@ -14,7 +14,7 @@ class Faculty(models.Model):
 
 class Program(models.Model):
     code = models.CharField(max_length=4, primary_key=True)
-    full_name = models.CharField(max_length=200, default="")
+    full_name = models.CharField(max_length=200)
     faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE)
 
     def __str__(self):
@@ -26,11 +26,11 @@ class Program(models.Model):
 
 class Curriculum(models.Model):
     program = models.ForeignKey(Program, on_delete=models.CASCADE)
-    from_year = models.PositiveSmallIntegerField(null=True, blank=True)
-    to_year = models.PositiveSmallIntegerField(null=True, blank=True)
-
+    full_name = models.CharField(max_length=200)
+    url = models.URLField()
+    code = models.CharField(max_length=30, primary_key=True)
     def __str__(self):
-        return self.program.name + " program's curriculum for years between"
+        return self.program.full_name + self.full_name
 
 
 class Course(models.Model):
@@ -40,6 +40,8 @@ class Course(models.Model):
     theoretical = models.PositiveSmallIntegerField(null=True, blank=True)
     tutorial = models.PositiveSmallIntegerField(null=True, blank=True)
     lab = models.PositiveSmallIntegerField(null=True, blank=True)
+    type = models.CharField(max_length=3)
+    is_compulsary = models.BooleanField()
     ects = models.FloatField(default=0, null=True)
     
     def __str__(self):
@@ -49,11 +51,11 @@ class Semester(models.Model):
     curriculum = models.ForeignKey(Curriculum, on_delete=models.CASCADE)
     num = models.PositiveSmallIntegerField()
     courses = models.ManyToManyField(Course)
-    total_ects = models.FloatField()
-    total_credits = models.FloatField()
+    code = models.CharField(max_length=30, primary_key=True)
+    # total_ects = models.FloatField()
+    # total_credits = models.FloatField()
 
     def __str__(self):
-        return f"{self.num}. Semester - Total Credits: {self.total_credits} - " \
-               f"Total ECTS: {self.total_ects}"
+        return f"{self.num}. Semester"
 
 
