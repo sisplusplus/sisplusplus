@@ -1,4 +1,5 @@
 import requests
+from collections import defaultdict
 from bs4 import BeautifulSoup
 from sis.models import (
     Faculty,
@@ -9,19 +10,21 @@ from sis.models import (
     SemesterCourseSlot,
 )
 
+
 TEST_MODE_MINIMAL_SCRAPE = False
 
 
 class Scraper:
     def __init__(self):
-        pass
+        self.curriculum_url = "https://www.sis.itu.edu.tr/TR/ogrenci/lisans/ders-planlari/ders-planlari.php"
+        self.program_url = "https://www.sis.itu.edu.tr/TR/ogrenci/lisans/ders-planlari/plan/{program.code}/"
+
 
     def scrape_faculty(self):
         # Gets and parses faculty codes.
         # Updates faculty name if it was changed.
         # Attention: Does not delete faculties that don't exist anymore
-
-        soup = get_soup("http://www.sis.itu.edu.tr/tr/dersplan/")
+        soup = get_soup(self.curriculum_url)
 
         select_box = soup.find("select", {"name": "fakulte"})
         for option in select_box.findChildren("option"):
@@ -37,21 +40,16 @@ class Scraper:
 
             if created:
                 print(f"Created faculty: {code : <3}-{full_name}")
-                if TEST_MODE_MINIMAL_SCRAPE:
-                    break
             else:
-                print(
-                    f"Faculty exists : {faculty_obj.code : <3} - {faculty_obj.full_name}"
-                )
-                if TEST_MODE_MINIMAL_SCRAPE:
-                    break
+                print(f"Faculty exists : {faculty_obj.code : <3} - {faculty_obj.full_name}")
+            if TEST_MODE_MINIMAL_SCRAPE:
+                break
 
     def scrape_program(self):
         for faculty in Faculty.objects.all():
-            soup = get_soup(
-                f"http://www.sis.itu.edu.tr/tr/dersplan/index.php?fakulte={faculty.code}"
-            )
-            selection = soup.find("select", {"name": "subj"})
+            payload = {"fakulte": faculty.code}
+            soup = get_soup(self.curriculum_url, payload)
+            selection = soup.find("select", {"name": "program"})
             for option in selection.findChildren("option"):
                 if option["value"] == "":
                     continue
@@ -67,27 +65,26 @@ class Scraper:
                     print(
                         f"Created program: {code : <4}- {full_name} of {faculty.full_name}"
                     )
-                    if TEST_MODE_MINIMAL_SCRAPE:
-                        break
                 else:
                     print(
                         f"Program exists : {program_obj.code : <4}- {full_name} of {faculty.full_name}"
                     )
-                    if TEST_MODE_MINIMAL_SCRAPE:
-                        break
+                if TEST_MODE_MINIMAL_SCRAPE:
+                    break
 
     def scrape_curriculum(self):
+
         for program in Program.objects.all():
-            base_url = f"http://www.sis.itu.edu.tr/tr/dersplan/plan/{program.code}/"
             try:
+                base_url = self.program_url.format(program=program)
                 soup = get_soup(base_url)
             except Exception as e:
                 print(e)
                 continue
 
-            span = soup.find("span", {"class": "ustbaslik"})
+            div = soup.find("div", {"class": "content-area"})
 
-            for a_tag in span.find_next_siblings("a"):
+            for a_tag in div.findChildren("a"):
                 # Getting rid of redundant information
                 # Student's Catalog Term: Before 2001-2002 Fall Semester
                 full_name = a_tag.text.strip().split(":")[-1].strip()
@@ -111,6 +108,10 @@ class Scraper:
                     print(
                         f"Curriculum exists : {program.code : <4}- {full_name :<55} code: {curriculum.code}"
                     )
+                # if TEST_MODE_MINIMAL_SCRAPE:
+                    # break
+            # if TEST_MODE_MINIMAL_SCRAPE:
+                # break
 
     def scrape_course(self):
         pass
@@ -122,44 +123,28 @@ class Scraper:
         for curriculum in Curriculum.objects.all():
             soup = get_soup(curriculum.url)
             for semester_num, table in enumerate(
-                soup.findAll("table", {"class": "plan"}), start=1
-            ):
-                defaults = {"num": semester_num, "curriculum": curriculum}
-                semester, created_semester = Semester.objects.update_or_create(
-                    code=f"{curriculum.code}_{semester_num}", defaults=defaults
-                )
+                    soup.findAll("table", {"class": "table-responsive"}), start=1
+                ):
+                    defaults = {"num": semester_num, "curriculum": curriculum}
+                    semester, created_semester = Semester.objects.update_or_create(
+                        code=f"{curriculum.code}_{semester_num}", defaults=defaults
+                    )
 
-                if created_semester:
-                    print(f"Created semester: {semester.code}")
+                    if created_semester:
+                        print(f"Created semester: {semester.code}")
 
-                header = table.find("tr")
-                for row_num, row in enumerate(header.find_next_siblings("tr"), start=1):
-                    code_column = row.find("td")
-
-                    # if it is not a special course set
-                    if code_column.text.strip() != "":
-                        course_codes_and_urls = [
-                            (a_tag.text, a_tag["href"])
-                            for a_tag in code_column.findChildren("a")
-                        ]
-                        courses = [
-                            self._get_or_create_course_from_url(code, url)
-                            for code, url in course_codes_and_urls
-                        ]
+                    header = table.find("tr")
+                    for row_num, row in enumerate(header.find_next_siblings("tr"), start=1):
+                        code_column = row.find("td")
                         defaults = {
                             "semester": semester,
                             "title": code_column.find_next("td").text.strip(),
                         }
-                        (
-                            semester_course_slot,
-                            created,
-                        ) = SemesterCourseSlot.objects.get_or_create(
+                        semester_course_slot, created, = SemesterCourseSlot.objects.get_or_create(
                             code=f"{semester.code}_row{row_num}",
-                            semester=semester,
-                            title=code_column.find_next("td").text.strip(),
+                            defaults=defaults,
                         )
                         if created:
-                            semester_course_slot.courses.add(*courses)
                             print(
                                 f"Created semester course slot: {semester_course_slot.code} "
                                 f"{semester_course_slot.title}"
@@ -172,20 +157,17 @@ class Scraper:
                         # TODO special course set
                         pass
 
-    @staticmethod
-    def _map_header_to_column_soup(header_translations, header, row):
-        # Sanitize header and row since there are breaks in between
-        header = header.findChildren("td")
-        row = row.findChildren("td")
 
-        header = [td.text.strip() for td in header]
-        header = [header_translations.get(i, i.lower()) for i in header]
+                            header = table.find('tr')
 
-        d = dict(zip(header, row))
-        return {key: value for key, value in d.items() if value not in ("-", "")}
+                            for row in header.find_next_siblings("tr"):
+                                code_column = row.find("td")
+                                courses = self._get_courses(code_column, defaults)
+                                semester_course_slot.courses.add(*courses)
+                        
 
     @staticmethod
-    def _map_header_to_column_text(header_translations, header, row):
+    def _map_header_to_column(header_translations, header, row):
         # Sanitize header and row since there are breaks in between
         header = header.findChildren("td")
         row = row.findChildren("td")
@@ -194,14 +176,31 @@ class Scraper:
         header = [header_translations.get(i, i.lower()) for i in header]
         row = [td.text.strip() for td in row]
 
+        # return dict(zip(header, row))
         d = dict(zip(header, row))
-        return {key: value for key, value in d.items() if value not in ("-", "")}
+        return defaultdict(str, {key: value for key, value in d.items() if value not in ("-", "")})
+
+    def _get_courses(self, code_column, defaults=None):
+        course_codes_and_urls = [
+            (a_tag.text, a_tag["href"])
+            for a_tag in code_column.findChildren("a")
+        ]
+        courses = [
+            self._get_or_create_course_from_url(code, url)
+            for code, url in course_codes_and_urls
+        ]
+        if defaults:
+            for course in courses:
+                if not course.title:
+                    course.title = defaults["title"]
+                    course.save()
+        return courses
 
     @staticmethod
     def _get_or_create_course_from_url(code, url):
         try:
             return Course.objects.get(code=code)
-        except Exception:
+        except Course.DoesNotExist:
             pass
 
         soup = get_soup(url)
@@ -210,35 +209,38 @@ class Scraper:
         # containing information about specified course
 
         # Table 1
-        table = soup.find("table", {"class": "plan"})
+        table = soup.find("table", {"class": "table-bordered"})
+        if table is None:
+            return Course.objects.update_or_create(code='DNE999', is_compulsary=False, defaults={'title': 'Course cannot be found'})[0]
+        table = table.find("table", {"class": "table-bordered"})
         header = table.find("tr")
 
         row = header.find_next_siblings("tr")[0]
         header_translations = {
-            "Kod (Code)": "code",
-            "Ders Adı (Course Name)": "title",
-            "Türü (Type)": "type",
-            "Dili (Language)": "language",
+            "Kod": "code",
+            "Ders Adı": "title",
+            "Türü": "type",
+            "Dili": "language",
         }
-        header_to_column = Scraper._map_header_to_column_soup(
+        header_to_column = Scraper._map_header_to_column(
             header_translations, header, row
         )
-        code = header_to_column["code"].text.strip()
-        title = header_to_column["title"].contents[0].strip()
-        is_compulsary = header_to_column["type"].text == "Zorunlu (Compulsory)"
+        code = header_to_column["code"]
+        title = header_to_column["title"]
+        is_compulsary = header_to_column["type"] == "Zorunlu"
 
         # Table 2
-        table = table.find_next("table", {"class": "plan"})
+        table = table.find_next("table", {"class": "table-bordered"})
         header = table.find("tr")
         row = header.find_next_siblings("tr")[0]
         header_translations = {
-            "Kredi (Local Credits)": "credit",
-            "AKTS (ECTS)": "ects",
-            "Ders (Theoretical)": "theoretical",
-            "Uygulama (Tutorial)": "tutorial",
-            "Labaratuvar (Laboratory)": "lab",
+            "Kredi": "credit",
+            "AKTS": "ects",
+            "Ders": "theoretical",
+            "Uygulama": "tutorial",
+            "Laboratuvar": "lab",
         }
-        table_two_data = Scraper._map_header_to_column_text(
+        table_two_data = Scraper._map_header_to_column(
             header_translations, header, row
         )
 
@@ -253,11 +255,11 @@ class Scraper:
         )
 
 
-def get_soup(url):
+def get_soup(url, payload=None):
     retry = 1
     while retry:
         try:
-            response = requests.get(url)
+            response = requests.get(url, params=payload)
             retry = 0
         except requests.exceptions.ConnectionError:
             print(f"Couldn't connect url: {url} - trying again")
