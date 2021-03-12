@@ -259,13 +259,25 @@ class Scraper:
             header_translations, header, row
         )
 
-        # TODO Table 3 - Prerequisites
+        # Table 3
+        table = table.find_next("table", {"class": "table-bordered"})
+        header = table.find("tr")
+        row = header.find_next_siblings("tr")[0]
+
+        prerequisite_td = row.findChildren('td')[1]
+        prerequisites = ' '.join(prerequisite_td.strings)
+        if prerequisite_td.a:
+            prerequisites = prerequisite_td.a["href"]
+
+        class_restrictions = row.find_next('tr').findChildren('td')[1].text
 
         print(f"Created course: {code}")
         return Course.objects.create(
             code=code,
             title=title,
             is_compulsary=is_compulsary,
+            prerequisites=prerequisites,
+            class_restrictions=class_restrictions,
             **table_two_data,
         )
 

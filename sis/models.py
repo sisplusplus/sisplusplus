@@ -44,6 +44,8 @@ class Course(models.Model):
     lab = models.PositiveSmallIntegerField(null=True, blank=True)
     is_compulsary = models.BooleanField()
     ects = models.FloatField(default=0, null=True)
+    prerequisites = models.CharField(max_length=1000)
+    class_restrictions = models.CharField(max_length=20)
 
     def __str__(self):
         return self.code
