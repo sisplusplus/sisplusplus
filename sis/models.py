@@ -48,7 +48,7 @@ class Course(models.Model):
     class_restrictions = models.CharField(max_length=20)
 
     def __str__(self):
-        return self.code
+        return str(self.code)
 
 
 class Semester(models.Model):
@@ -59,7 +59,7 @@ class Semester(models.Model):
     # total_credits = models.FloatField()
 
     def __str__(self):
-        return self.code
+        return str(self.code)
 
 
 class SemesterCourseSlot(models.Model):
