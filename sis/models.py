@@ -30,6 +30,7 @@ class Curriculum(models.Model):
     full_name = models.CharField(max_length=200)
     url = models.URLField()
     code = models.CharField(max_length=30, primary_key=True)
+    parsed = models.BooleanField(default=False)
 
     def __str__(self):
         return self.program.full_name + ": " + self.full_name

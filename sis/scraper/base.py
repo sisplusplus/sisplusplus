@@ -120,7 +120,7 @@ class Scraper:
         pass
 
     def scrape_semester_and_courses(self):
-        for curriculum in Curriculum.objects.all():
+        for curriculum in Curriculum.objects.filter(parsed=False):
             soup = get_soup(curriculum.url)
             for semester_num, table in enumerate(
                     soup.findAll("table", {"class": "table-responsive"}), start=1
@@ -180,6 +180,9 @@ class Scraper:
                                 courses = self._get_courses(code_column, defaults)
                                 semester_course_slot.courses.add(*courses)
                         
+
+            curriculum.parsed = True
+            curriculum.save()
 
     @staticmethod
     def _map_header_to_column(header_translations, header, row):
