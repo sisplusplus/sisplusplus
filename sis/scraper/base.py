@@ -153,9 +153,24 @@ class Scraper:
                             print(
                                 f"Semester course slot exists: {semester_course_slot.code}"
                             )
-                    else:
-                        # TODO special course set
-                        pass
+                        # if created: # we are already skipping parsed curriculums.
+                                      # This needs to be run in order to make sure
+                                      # that we are still adding courses even if the
+                                      # execution is interrupted before
+                        # if it is not a special course set
+                        if code_column.text.strip() != "":
+                            courses = self._get_courses(code_column, defaults)
+                            semester_course_slot.courses.add(*courses)
+                        else:
+                            url = curriculum.url.rsplit('/', 1)
+                            url[1] = row.findAll('td')[1].a['href']
+                            url = '/'.join(url)
+                            soup = get_soup(url)
+                            table = soup.find("table", {"class": "table-responsive"})
+                            if table is None:
+                                with open('errors', 'a') as f:
+                                    f.write(f'{url} page has some problems\n')
+                                    continue
 
 
                             header = table.find('tr')
