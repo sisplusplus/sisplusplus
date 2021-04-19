@@ -1,4 +1,25 @@
 {% extends "students/base.html" %}
 {% block content %}
-    <h1>Student Home!</h1>
+    <div class="row">
+        <table class="table table-sm table-striped">
+                <tr>
+                    <td>Student ID</td>
+                    <td>{{ student.student_id }}</td>
+                    <td>Faculty</td>
+                    <td>{{ student.faculty.full_name }}</td>
+                </tr>
+                <tr>
+                    <td>Name</td>
+                    <td>{{ student.name }}</td>
+                    <td>Program</td>
+                    <td>{{ student.program.full_name }}</td>
+                </tr>
+                <tr>
+                    <td>Surname</td>
+                    <td>{{ student.surname }}</td>
+                    <td>Curriculum</td>
+                    <td>{{ student.curriculum.full_name }}</td>
+                </tr>
+        </table>
+    </div>
 {% endblock content %}

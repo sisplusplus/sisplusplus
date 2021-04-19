@@ -1,13 +1,43 @@
 from django.contrib import messages
-from django.shortcuts import redirect, render
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.shortcuts import redirect, render
 
-from .forms import StudentRegisterForm
+from .forms import StudentForm, UserRegisterForm
 
 
 @login_required
 def home(request):
-    return render(request, 'students/home.html')
+    try:
+        student = request.user.student
+    except User.student.RelatedObjectDoesNotExist:
+        return redirect("students:create")
+
+    context = {"student": student}
+
+    return render(request, "students/home.html", context)
+
+
+@login_required
+def create(request):
+    if request.POST:
+        form = StudentForm(request.POST)
+
+        if form.is_valid():
+            s = form.save(commit=False)
+            s.user = request.user
+            s.save()
+            print(f"{s.transcript=}")
+            messages.success(request, "Success")
+
+            return redirect("students:home")
+        else:
+            print("ERROR in s_form")
+    else:
+        form = StudentForm()
+    context = {"form": form}
+
+    return render(request, "students/student.html", context=context)
 
 
 def register(request):

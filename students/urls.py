@@ -18,4 +18,5 @@ urlpatterns = [
         auth_views.LogoutView.as_view(template_name="students/logout.html"),
         name="logout",
     ),
+    path("create/", views.create, name="create"),
 ]

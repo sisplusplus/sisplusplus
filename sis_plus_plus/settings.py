@@ -116,7 +116,9 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 
-# CRISPY_TEMPLATE_PACK = 'bootstrap4'
+CRISPY_TEMPLATE_PACK = "bootstrap4"
 
 LOGIN_REDIRECT_URL = "students:home"
 LOGIN_URL = "students:login"
+
+USE_DJANGO_JQUERY = True
