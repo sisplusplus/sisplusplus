@@ -20,6 +20,13 @@ def home(request):
 
 @login_required
 def create(request):
+    instance = getattr(request.user, "student", None)
+
+    if instance:
+        messages.success(request, "Already created!")  # Needs a better message
+
+        return redirect("students:home")
+
     if request.POST:
         form = StudentForm(request.POST)
 
