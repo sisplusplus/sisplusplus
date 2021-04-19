@@ -6,11 +6,16 @@ from . import views
 app_name = "students"
 
 urlpatterns = [
-    path('', views.home, name='home'),
+    path("", views.home, name="home"),
     path("register/", views.register, name="register"),
     path(
         "login/",
         auth_views.LoginView.as_view(template_name="students/login.html"),
         name="login",
+    ),
+    path(
+        "logout/",
+        auth_views.LogoutView.as_view(template_name="students/logout.html"),
+        name="logout",
     ),
 ]
