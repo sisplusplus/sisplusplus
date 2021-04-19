@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'smart_selects',
     'sis.apps.SisConfig',
     'transcript.apps.TranscriptConfig',
+    'crispy_forms',
     ]
 
 MIDDLEWARE = [

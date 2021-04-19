@@ -3,4 +3,5 @@ djangorestframework
 requests
 beautifulsoup4
 django-smart-selects
+django-crispy-forms
 
