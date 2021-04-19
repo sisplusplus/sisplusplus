@@ -11,7 +11,7 @@ def home(request):
 
 
 def register(request):
-    form = StudentRegisterForm(request.POST or None)
+    form = UserRegisterForm(request.POST or None)
 
     if form.is_valid():
         messages.success(request, "Your account has been created!")
