@@ -39,9 +39,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'smart_selects',
+    'crispy_forms',
     'sis.apps.SisConfig',
     'transcript.apps.TranscriptConfig',
-    'crispy_forms',
+    'students.apps.StudentsConfig',
     ]
 
 MIDDLEWARE = [
